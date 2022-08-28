@@ -133,7 +133,7 @@ class Allocator:
             self._regions[region_idx] = dataclasses.replace(region, is_free=True)
 
     def _get_region_idx(self, region: MemoryRegion) -> int:
-
+        """Get the index of a region in the current region list"""
         try:
             return self._regions.index(region)
         except ValueError:

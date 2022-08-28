@@ -25,7 +25,9 @@ dynamic = ["version"]
 dev = [
     "black==22.6.0",
     "pre-commit",
-    "types-beautifulsoup4"
+    "pytest",
+    "pytest-subtests",
+    "pytest-cov",
 ]
 
 [project.urls]
@@ -41,3 +43,7 @@ version = {attr = "virtual_allocator.__version__"}
 
 [tool.black]
 line-length = 120
+
+
+[tool.pytest.ini_options]
+addopts = "--cov-report=xml:coverage.xml --cov-report=term --cov=virtual_allocator"
