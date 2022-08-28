@@ -1,2 +1,3 @@
 # virtual-allocator
-Python allocator for  a virtual memory range
+
+Python allocator for a virtual memory range
