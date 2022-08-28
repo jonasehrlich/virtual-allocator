@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "virtual-allocator"
+description = "Python allocator for a virtual memory range"
+readme = "README.md"
+requires-python = ">=3.7"
+license = {text = "MIT"}
+keywords = []
+authors = [
+  {name = "Jonas Ehrlich"}, {email = "jonas.ehrlich@gmail.com"},
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+dev = [
+    "black==22.6.0",
+    "pre-commit",
+    "types-beautifulsoup4"
+]
+
+[project.urls]
+homepage = "https://github.com/jonasehrlich/virtual-allocator"
+repository = "https://github.com/jonasehrlich/virtual-allocator"
+
+[tool.setuptools.packages.find]
+include = ["virtual_allocator*"]
+exclude = ["test*"]
+
+[tool.setuptools.dynamic]
+version = {attr = "virtual_allocator.__version__"}
+
+[tool.black]
+line-length = 120
