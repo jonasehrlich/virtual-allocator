@@ -7,14 +7,14 @@ The allocator implements the `allocate`, `free` and `resize` methods which each 
 
 ``` python
 
-    from virtual_allocator import Allocator, MemoryRange
+    from virtual_allocator import AllocationPolicy, Allocator, MemoryRange
 
     alloc = Allocator(
         address=0,
         size=256,
         block_size=16,
         alignment=32,
-        allocation_policy=allocator.AllocationPolicy.BEST_FIT
+        allocation_policy=AllocationPolicy.BEST_FIT
     )
 
     mem_ranges = [alloc.allocate(64) for _ in range(3)]
