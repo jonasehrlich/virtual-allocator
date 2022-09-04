@@ -219,7 +219,7 @@ class Allocator:
         elif self._allocation_policy == AllocationPolicy.BEST_FIT:
             return self.find_best_free_memory_region(size)
 
-        raise ValueError(f"Invalid allocation policy: {self._allocation_policy}")
+        raise ValueError(f"Invalid allocation policy: {self._allocation_policy}")  # pragma: no cover
 
     def find_first_free_memory_region(self, size: int) -> MemoryRegion:
         """Find the first free memory region that fits the required size
@@ -267,7 +267,7 @@ class Allocator:
         :rtype: MemoryRegion
         """
         if size < region.size:
-            raise ValueError(f"Cannot increase region size of {region} to {size}")
+            raise ValueError(f"Cannot increase region size of {region} to {size}")  # pragma: no cover
 
         region_idx = self._get_region_idx(region)
         _, next_region = self._get_surrounding_regions(region)
@@ -308,7 +308,7 @@ class Allocator:
         """
 
         if size > region.size:
-            raise ValueError(f"Cannot reduce region size of {region} to {size}")
+            raise ValueError(f"Cannot reduce region size of {region} to {size}")  # pragma: no cover
 
         region_idx = self._get_region_idx(region)
         _, next_region = self._get_surrounding_regions(region)

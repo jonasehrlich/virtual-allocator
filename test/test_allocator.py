@@ -7,6 +7,9 @@ def test_allocate():
     alloc = allocator.Allocator(
         address=0, size=256, block_size=16, alignment=32, allocation_policy=allocator.AllocationPolicy.FIRST_FIT
     )
+    with pytest.raises(ValueError):
+        alloc.allocate(-16)
+
     for _ in range(5):
         alloc.allocate(32)
 
@@ -188,6 +191,17 @@ def test_resize_decrease():
 
     with pytest.raises(ValueError):
         alloc.resize(allocator.MemoryRegion(32, 8, is_free=False), -5)
+
+    r3 = alloc.allocate(208)
+    alloc.resize(r3, 192)
+
+    assert alloc.regions == [
+        allocator.MemoryRegion(0, 16, is_free=False),
+        allocator.MemoryRegion(16, 16, is_free=True),
+        allocator.MemoryRegion(32, 8, is_free=False, padding=8),
+        allocator.MemoryRegion(48, 192, is_free=False),
+        allocator.MemoryRegion(240, 16, is_free=True),
+    ]
 
 
 def test_resize_increase():
