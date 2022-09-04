@@ -7,8 +7,9 @@ The allocator implements the `allocate`, `free` and `resize` methods which each 
 
 ``` python
 
+    from virtual_allocator import Allocator, MemoryRange
 
-    alloc = allocator.Allocator(
+    alloc = Allocator(
         address=0,
         size=256,
         block_size=16,
@@ -19,19 +20,19 @@ The allocator implements the `allocate`, `free` and `resize` methods which each 
     mem_ranges = [alloc.allocate(64) for _ in range(3)]
 
     assert mem_ranges == [
-        allocator.MemoryRange(address=0, size=64, is_free=False, padding=0),
-        allocator.MemoryRange(address=64, size=64, is_free=False, padding=0),
-        allocator.MemoryRange(address=128, size=64, is_free=False, padding=0),
-        allocator.MemoryRange(address=196, size=64, is_free=True, padding=0),
+        MemoryRange(address=0, size=64, is_free=False, padding=0),
+        MemoryRange(address=64, size=64, is_free=False, padding=0),
+        MemoryRange(address=128, size=64, is_free=False, padding=0),
+        MemoryRange(address=196, size=64, is_free=True, padding=0),
     ]
 
     alloc.free(mem_ranges[1])
-    
+
     assert mem_ranges == [
-        allocator.MemoryRange(address=0, size=64, is_free=False, padding=0),
-        allocator.MemoryRange(address=64, size=64, is_free=True, padding=0),
-        allocator.MemoryRange(address=128, size=64, is_free=False, padding=0),
-        allocator.MemoryRange(address=196, size=64, is_free=True, padding=0),
+        MemoryRange(address=0, size=64, is_free=False, padding=0),
+        MemoryRange(address=64, size=64, is_free=True, padding=0),
+        MemoryRange(address=128, size=64, is_free=False, padding=0),
+        MemoryRange(address=196, size=64, is_free=True, padding=0),
     ]
 ```
 
