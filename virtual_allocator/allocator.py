@@ -154,7 +154,8 @@ class Allocator:
 
     def _get_padding(self, size: int) -> int:
         """Get the padding required for `size`"""
-        if (leftover := size % self._alignment) == 0:
+        leftover = size % self._alignment
+        if leftover == 0:
             return leftover
         return self._alignment - leftover
 
