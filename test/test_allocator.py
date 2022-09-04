@@ -4,7 +4,9 @@ from virtual_allocator import allocator
 
 def test_allocate():
     """Test allocation of memory"""
-    alloc = allocator.Allocator(address=0, size=100, allocation_policy=allocator.AllocationPolicy.FIRST_FIT)
+    alloc = allocator.Allocator(
+        address=0, size=100, block_size=1, alignment=1, allocation_policy=allocator.AllocationPolicy.FIRST_FIT
+    )
     for _ in range(9):
         alloc.allocate(10)
 
@@ -21,7 +23,9 @@ def test_allocate():
 
 def test_free(subtests):
     """Test free of memory"""
-    alloc = allocator.Allocator(address=0, size=100, allocation_policy=allocator.AllocationPolicy.FIRST_FIT)
+    alloc = allocator.Allocator(
+        address=0, size=100, block_size=1, alignment=1, allocation_policy=allocator.AllocationPolicy.FIRST_FIT
+    )
 
     for _ in range(4):
         alloc.allocate(10)
@@ -91,10 +95,11 @@ def test_free(subtests):
         ]
 
 
-
 def test_best_fit_allocation():
     """Test the best fit allocation policy"""
-    alloc = allocator.Allocator(address=0, size=100, allocation_policy=allocator.AllocationPolicy.BEST_FIT)
+    alloc = allocator.Allocator(
+        address=0, size=100, block_size=1, alignment=1, allocation_policy=allocator.AllocationPolicy.BEST_FIT
+    )
 
     regions_to_free = list()
     alloc.allocate(10)
@@ -120,9 +125,12 @@ def test_best_fit_allocation():
     with pytest.raises(allocator.AllocatorOutOfMemoryError):
         alloc.allocate(60)
 
+
 def test_first_fit_allocation():
     """Test the first fit allocation policy"""
-    alloc = allocator.Allocator(address=0, size=100, allocation_policy=allocator.AllocationPolicy.FIRST_FIT)
+    alloc = allocator.Allocator(
+        address=0, size=100, block_size=1, alignment=1, allocation_policy=allocator.AllocationPolicy.FIRST_FIT
+    )
 
     regions_to_free = list()
     alloc.allocate(10)
@@ -150,7 +158,9 @@ def test_first_fit_allocation():
 def test_resize_decrease():
     """Test region resize when the size decreases"""
 
-    alloc = allocator.Allocator(address=0, size=100, allocation_policy=allocator.AllocationPolicy.BEST_FIT)
+    alloc = allocator.Allocator(
+        address=0, size=100, block_size=1, alignment=1, allocation_policy=allocator.AllocationPolicy.BEST_FIT
+    )
     r1 = alloc.allocate(10)
     r2 = alloc.allocate(10)
 
@@ -178,12 +188,15 @@ def test_resize_decrease():
     with pytest.raises(ValueError):
         alloc.resize(allocator.MemoryRegion(10, 5, is_free=False), -5)
 
+
 def test_resize_increase():
     """Test region resize when the size increases"""
 
-    alloc = allocator.Allocator(address=0, size=100, allocation_policy=allocator.AllocationPolicy.BEST_FIT)
+    alloc = allocator.Allocator(
+        address=0, size=100, block_size=1, alignment=1, allocation_policy=allocator.AllocationPolicy.BEST_FIT
+    )
     r1 = alloc.allocate(20)
-    r2  = alloc.allocate(10)
+    r2 = alloc.allocate(10)
 
     assert alloc.regions == [
         allocator.MemoryRegion(0, 20, is_free=False),
@@ -197,12 +210,15 @@ def test_resize_increase():
     with pytest.raises(allocator.AllocatorOutOfMemoryError):
         alloc.resize(r2, 85)
 
+
 def test_resize_same_size():
     """Test region resize when the size stays the same"""
 
-    alloc = allocator.Allocator(address=0, size=100, allocation_policy=allocator.AllocationPolicy.BEST_FIT)
+    alloc = allocator.Allocator(
+        address=0, size=100, block_size=1, alignment=1, allocation_policy=allocator.AllocationPolicy.BEST_FIT
+    )
     alloc.allocate(20)
-    r  = alloc.allocate(10)
+    r = alloc.allocate(10)
     assert alloc.regions == [
         allocator.MemoryRegion(0, 20, is_free=False),
         allocator.MemoryRegion(20, 10, is_free=False),
@@ -213,4 +229,27 @@ def test_resize_same_size():
         allocator.MemoryRegion(0, 20, is_free=False),
         allocator.MemoryRegion(20, 10, is_free=False),
         allocator.MemoryRegion(30, 70, is_free=True),
+    ]
+
+
+def test_block_size():
+    """Test that the"""
+    alloc = allocator.Allocator(
+        address=0, size=128, block_size=16, alignment=1, allocation_policy=allocator.AllocationPolicy.BEST_FIT
+    )
+    with pytest.raises(allocator.AlignmentError):
+
+        alloc.allocate(20)
+    r = alloc.allocate(32)
+    assert alloc.regions == [
+        allocator.MemoryRegion(0, 32, is_free=False),
+        allocator.MemoryRegion(32, 96, is_free=True),
+    ]
+
+    with pytest.raises(allocator.AlignmentError):
+        alloc.resize(r, 35)
+    alloc.resize(r, 64)
+    assert alloc.regions == [
+        allocator.MemoryRegion(0, 64, is_free=False),
+        allocator.MemoryRegion(64, 64, is_free=True),
     ]

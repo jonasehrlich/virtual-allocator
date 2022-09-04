@@ -5,7 +5,6 @@ import enum
 import typing as ty
 
 
-
 __all__ = ["UnknownRegionError", "AllocationPolicy", "AllocatorOutOfMemoryError", "Allocator"]
 
 
@@ -33,13 +32,19 @@ class AllocationPolicy(enum.Enum):
     BEST_FIT = enum.auto()  # Allocate to the memory region with the smallest size difference to the allocated block
 
 
+class AlignmentError(ValueError):
+    """Raised if the requested memory size is not a multiple of the block size"""
+
+
 class Allocator:
     """Linked-list allocator"""
 
-    def __init__(self, address: int, size: int, allocation_policy: AllocationPolicy):
+    def __init__(self, address: int, size: int, block_size: int, alignment: int, allocation_policy: AllocationPolicy):
         self._address = address
         self._size = size
         self._allocation_policy = allocation_policy
+        self._block_size = block_size
+        self._alignment = alignment
 
         self._regions: list[MemoryRegion] = [MemoryRegion(self._address, size, is_free=True)]
 
@@ -62,21 +67,19 @@ class Allocator:
         if size < 0:
             raise ValueError(f"Invalid size {size}")
 
-        # Find free space
-        if self._allocation_policy == AllocationPolicy.FIRST_FIT:
-            free_region = self.find_first_free_memory_region(size)
-        elif self._allocation_policy == AllocationPolicy.BEST_FIT:
-            free_region = self.find_best_free_memory_region(size)
-        else:
-            raise ValueError(f"Invalid allocation policy: {self._allocation_policy}")
+        free_region = self.find_free_memory_region(size)
         free_region_idx = self._get_region_idx(free_region)
 
         # Create the region with size 0 and insert it into the regions, use resize functionality to implement the
         # resizing of the regions
         allocated_region = MemoryRegion(free_region.address, size=0, is_free=False)
         self._regions.insert(free_region_idx, allocated_region)
-
-        return self.resize(allocated_region, size)
+        try:
+            return self.resize(allocated_region, size)
+        except AlignmentError:
+            # Alignment error during resize, remove the empty allocated region from the list of regions
+            self._regions.pop(free_region_idx)
+            raise
 
     def resize(self, region: MemoryRegion, size: int) -> MemoryRegion:
         """Resize a memory region. The memory region can only be grown if no region is allocated after it.
@@ -88,6 +91,9 @@ class Allocator:
         """
         if size < 0:
             raise ValueError(f"Invalid size {size}")
+
+        if size % self._block_size != 0:
+            raise AlignmentError(f"Size {size} is not a multiple of block size {self._block_size}")
 
         if size == region.size:
             return region
@@ -139,15 +145,20 @@ class Allocator:
         except ValueError:
             raise UnknownRegionError(f"Memory region {region} is unknown")
 
-    def _gen_free_regions(self, min_size: int | None) -> ty.Generator[MemoryRegion, None, None]:
-        """Return a generator that yields all free memory regions"""
+    def _gen_free_regions(self, size: int) -> ty.Generator[MemoryRegion, None, None]:
+        """Return a generator that yields all free memory regions with the minimum size
+
+        :param min_size: Minimum Size of the Memory region
+        :type min_size: int
+        :return: _description_
+        :rtype: ty.Generator[MemoryRegion, None, None]
+        :yield: Free memory region with matching the minimum size
+        :rtype: Iterator[ty.Generator[MemoryRegion, None, None]]
+        """
         for region in self._regions:
             if region.is_free:
-                if min_size is None:
+                if region.size >= size:
                     yield region
-                else:
-                    if region.size >= min_size:
-                        yield region
 
     def _get_surrounding_regions(self, region: MemoryRegion) -> tuple[MemoryRegion | None, MemoryRegion | None]:
         """Get a 2-tuple of the regions surrounding a memory region.
@@ -173,6 +184,24 @@ class Allocator:
             previous_region = None
         return previous_region, next_region
 
+    def find_free_memory_region(self, size: int) -> MemoryRegion:
+        """Find a free memory region according to the allocation policy
+
+        :param size: Minimum size of the memory region
+        :type size: int
+        :raises AllocatorOutOfMemoryError: Raised if no free memory region could be found
+        :return: First free memory region that fits the required size
+        :rtype: MemoryRegion
+        """
+
+        # Find free space
+        if self._allocation_policy == AllocationPolicy.FIRST_FIT:
+            return self.find_first_free_memory_region(size)
+        elif self._allocation_policy == AllocationPolicy.BEST_FIT:
+            return self.find_best_free_memory_region(size)
+
+        raise ValueError(f"Invalid allocation policy: {self._allocation_policy}")
+
     def find_first_free_memory_region(self, size: int) -> MemoryRegion:
         """Find the first free memory region that fits the required size
 
@@ -180,10 +209,10 @@ class Allocator:
         :type size: int
         :raises AllocatorOutOfMemoryError: Raised if no free memory region could be found
         :return: First free memory region that fits the required size
-        :rtype: tuple[int, MemoryRegion]
+        :rtype: MemoryRegion
         """
         try:
-            return next(self._gen_free_regions(min_size=size))
+            return next(self._gen_free_regions(size=size))
         except StopIteration:
             raise AllocatorOutOfMemoryError(f"No memory region for size {size} found")
 
@@ -194,10 +223,10 @@ class Allocator:
         :type size: int
         :raises AllocatorOutOfMemoryError: Raised if no fitting free memory region could be found
         :return: Best free memory region that fits the required size
-        :rtype: tuple[int, MemoryRegion]
+        :rtype: MemoryRegiona
         """
 
-        fitting_regions = sorted(list(self._gen_free_regions(min_size=size)), key=lambda region: region.size)
+        fitting_regions = sorted(list(self._gen_free_regions(size=size)), key=lambda region: region.size)
         try:
             return fitting_regions[0]
         except IndexError:
@@ -257,7 +286,9 @@ class Allocator:
             # Move next free region
 
             self._regions[region_idx + 1] = dataclasses.replace(
-                next_region, address=resized_region.address + resized_region.size, size=next_region.size + region.size - size
+                next_region,
+                address=resized_region.address + resized_region.size,
+                size=next_region.size + region.size - size,
             )
 
         else:
