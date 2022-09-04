@@ -5,152 +5,153 @@ from virtual_allocator import allocator
 def test_allocate():
     """Test allocation of memory"""
     alloc = allocator.Allocator(
-        address=0, size=100, block_size=1, alignment=1, allocation_policy=allocator.AllocationPolicy.FIRST_FIT
+        address=0, size=256, block_size=16, alignment=32, allocation_policy=allocator.AllocationPolicy.FIRST_FIT
     )
-    for _ in range(9):
-        alloc.allocate(10)
+    for _ in range(5):
+        alloc.allocate(32)
 
-    assert len(alloc.regions) == 10
+    assert len(alloc.regions) == 6
 
-    with pytest.raises(allocator.AllocatorOutOfMemoryError):
-        alloc.allocate(20)
+    with pytest.raises(allocator.OutOfMemoryError):
+        alloc.allocate(128)
 
-    alloc.allocate(10)
+    alloc.allocate(96)
 
-    assert len(alloc.regions) == 10
+    assert len(alloc.regions) == 6
     assert {region.is_free for region in alloc.regions} == {False}
 
 
 def test_free(subtests):
     """Test free of memory"""
     alloc = allocator.Allocator(
-        address=0, size=100, block_size=1, alignment=1, allocation_policy=allocator.AllocationPolicy.FIRST_FIT
+        address=0, size=256, block_size=16, alignment=32, allocation_policy=allocator.AllocationPolicy.FIRST_FIT
     )
 
     for _ in range(4):
-        alloc.allocate(10)
+        alloc.allocate(32)
 
-    big_region = alloc.allocate(50)
+    big_region = alloc.allocate(128)
 
-    with pytest.raises(allocator.AllocatorOutOfMemoryError):
-        alloc.allocate(30)
+    with pytest.raises(allocator.OutOfMemoryError):
+        alloc.allocate(32)
 
     alloc.free(big_region)
 
     # Check that the region is really unknown
     with pytest.raises(allocator.UnknownRegionError):
         alloc._get_region_idx(big_region)
-    # Check that we can allocate 50 bytes again
-    big_region2 = alloc.allocate(50)
+
+    # Check that we can allocate 128 bytes again
+    big_region2 = alloc.allocate(128)
     alloc.free(big_region2)
 
     with subtests.test("no free surrounding"):
-        alloc.free(allocator.MemoryRegion(10, 10, False))
+        alloc.free(allocator.MemoryRegion(32, 32, False))
         assert alloc.regions == [
-            allocator.MemoryRegion(0, 10, False),
-            allocator.MemoryRegion(10, 10, True),
-            allocator.MemoryRegion(20, 10, False),
-            allocator.MemoryRegion(30, 10, False),
-            allocator.MemoryRegion(40, 60, True),
+            allocator.MemoryRegion(0, 32, False),
+            allocator.MemoryRegion(32, 32, True),
+            allocator.MemoryRegion(64, 32, False),
+            allocator.MemoryRegion(96, 32, False),
+            allocator.MemoryRegion(128, 128, True),
         ]
 
     with subtests.test("already free"):
-        alloc.free(allocator.MemoryRegion(10, 10, True))
+        alloc.free(allocator.MemoryRegion(32, 32, True))
 
     with subtests.test("prev free"):
-        alloc.free(allocator.MemoryRegion(20, 10, False))
+        alloc.free(allocator.MemoryRegion(64, 32, False))
         assert alloc.regions == [
-            allocator.MemoryRegion(0, 10, False),
-            allocator.MemoryRegion(10, 20, True),
-            allocator.MemoryRegion(30, 10, False),
-            allocator.MemoryRegion(40, 60, True),
+            allocator.MemoryRegion(0, 32, False),
+            allocator.MemoryRegion(32, 64, True),
+            allocator.MemoryRegion(96, 32, False),
+            allocator.MemoryRegion(128, 128, True),
         ]
 
-    alloc.allocate(10)
-    alloc.allocate(10)
+    alloc.allocate(32)
+    alloc.allocate(32)
 
     with subtests.test("next free"):
-        alloc.free(allocator.MemoryRegion(30, 10, False))
+        alloc.free(allocator.MemoryRegion(96, 32, False))
 
         assert alloc.regions == [
-            allocator.MemoryRegion(0, 10, False),
-            allocator.MemoryRegion(10, 10, False),
-            allocator.MemoryRegion(20, 10, False),
-            allocator.MemoryRegion(30, 70, True),
+            allocator.MemoryRegion(0, 32, False),
+            allocator.MemoryRegion(32, 32, False),
+            allocator.MemoryRegion(64, 32, False),
+            allocator.MemoryRegion(96, 160, True),
         ]
 
     with subtests.test("next and prev free"):
-        alloc.free(allocator.MemoryRegion(10, 10, False))
+        alloc.free(allocator.MemoryRegion(32, 32, False))
 
         assert alloc.regions == [
-            allocator.MemoryRegion(0, 10, False),
-            allocator.MemoryRegion(10, 10, True),
-            allocator.MemoryRegion(20, 10, False),
-            allocator.MemoryRegion(30, 70, True),
+            allocator.MemoryRegion(0, 32, False),
+            allocator.MemoryRegion(32, 32, True),
+            allocator.MemoryRegion(64, 32, False),
+            allocator.MemoryRegion(96, 160, True),
         ]
-        alloc.free(allocator.MemoryRegion(20, 10, False))
+        alloc.free(allocator.MemoryRegion(64, 32, False))
         assert alloc.regions == [
-            allocator.MemoryRegion(0, 10, False),
-            allocator.MemoryRegion(10, 90, True),
+            allocator.MemoryRegion(0, 32, False),
+            allocator.MemoryRegion(32, 224, True),
         ]
 
 
 def test_best_fit_allocation():
     """Test the best fit allocation policy"""
     alloc = allocator.Allocator(
-        address=0, size=100, block_size=1, alignment=1, allocation_policy=allocator.AllocationPolicy.BEST_FIT
+        address=0, size=256, block_size=16, alignment=32, allocation_policy=allocator.AllocationPolicy.BEST_FIT
     )
 
     regions_to_free = list()
-    alloc.allocate(10)
-    regions_to_free.append(alloc.allocate(20))
-    alloc.allocate(10)
-    regions_to_free.append(alloc.allocate(5))
-    alloc.allocate(10)
+    alloc.allocate(32)
+    regions_to_free.append(alloc.allocate(64))
+    alloc.allocate(32)
+    regions_to_free.append(alloc.allocate(16))
+    alloc.allocate(32)
 
     for region in regions_to_free:
         alloc.free(region)
 
-    alloc.allocate(5)
+    alloc.allocate(16)
     expected_regions = [
-        allocator.MemoryRegion(0, 10, is_free=False),
-        allocator.MemoryRegion(10, 20, is_free=True),
-        allocator.MemoryRegion(30, 10, is_free=False),
-        allocator.MemoryRegion(40, 5, is_free=False),
-        allocator.MemoryRegion(45, 10, is_free=False),
-        allocator.MemoryRegion(55, 45, is_free=True),
+        allocator.MemoryRegion(0, 32, is_free=False),
+        allocator.MemoryRegion(32, 64, is_free=True),
+        allocator.MemoryRegion(96, 32, is_free=False),
+        allocator.MemoryRegion(128, 16, is_free=False, padding=16),
+        allocator.MemoryRegion(160, 32, is_free=False),
+        allocator.MemoryRegion(192, 64, is_free=True),
     ]
     assert alloc.regions == expected_regions
 
-    with pytest.raises(allocator.AllocatorOutOfMemoryError):
-        alloc.allocate(60)
+    with pytest.raises(allocator.OutOfMemoryError):
+        alloc.allocate(96)
 
 
 def test_first_fit_allocation():
     """Test the first fit allocation policy"""
     alloc = allocator.Allocator(
-        address=0, size=100, block_size=1, alignment=1, allocation_policy=allocator.AllocationPolicy.FIRST_FIT
+        address=0, size=256, block_size=16, alignment=32, allocation_policy=allocator.AllocationPolicy.FIRST_FIT
     )
 
     regions_to_free = list()
-    alloc.allocate(10)
-    regions_to_free.append(alloc.allocate(20))
-    alloc.allocate(10)
-    regions_to_free.append(alloc.allocate(5))
-    alloc.allocate(10)
+    alloc.allocate(32)
+    regions_to_free.append(alloc.allocate(64))
+    alloc.allocate(32)
+    regions_to_free.append(alloc.allocate(16))
+    alloc.allocate(32)
 
     for region in regions_to_free:
         alloc.free(region)
 
-    alloc.allocate(5)
+    alloc.allocate(16)
     expected_regions = [
-        allocator.MemoryRegion(0, 10, is_free=False),
-        allocator.MemoryRegion(10, 5, is_free=False),
-        allocator.MemoryRegion(15, 15, is_free=True),
-        allocator.MemoryRegion(30, 10, is_free=False),
-        allocator.MemoryRegion(40, 5, is_free=True),
-        allocator.MemoryRegion(45, 10, is_free=False),
-        allocator.MemoryRegion(55, 45, is_free=True),
+        allocator.MemoryRegion(0, 32, is_free=False),
+        allocator.MemoryRegion(32, 16, is_free=False, padding=16),
+        allocator.MemoryRegion(64, 32, is_free=True),
+        allocator.MemoryRegion(96, 32, is_free=False),
+        allocator.MemoryRegion(128, 32, is_free=True),
+        allocator.MemoryRegion(160, 32, is_free=False),
+        allocator.MemoryRegion(192, 64, is_free=True),
     ]
     assert alloc.regions == expected_regions
 
@@ -159,81 +160,81 @@ def test_resize_decrease():
     """Test region resize when the size decreases"""
 
     alloc = allocator.Allocator(
-        address=0, size=100, block_size=1, alignment=1, allocation_policy=allocator.AllocationPolicy.BEST_FIT
+        address=0, size=256, block_size=8, alignment=16, allocation_policy=allocator.AllocationPolicy.BEST_FIT
     )
-    r1 = alloc.allocate(10)
-    r2 = alloc.allocate(10)
+    r1 = alloc.allocate(32)
+    r2 = alloc.allocate(32)
 
     assert alloc.regions == [
-        allocator.MemoryRegion(0, 10, is_free=False),
-        allocator.MemoryRegion(10, 10, is_free=False),
-        allocator.MemoryRegion(20, 80, is_free=True),
+        allocator.MemoryRegion(0, 32, is_free=False),
+        allocator.MemoryRegion(32, 32, is_free=False),
+        allocator.MemoryRegion(64, 192, is_free=True),
     ]
 
-    alloc.resize(r2, 5)
+    alloc.resize(r2, 8)
     assert alloc.regions == [
-        allocator.MemoryRegion(0, 10, is_free=False),
-        allocator.MemoryRegion(10, 5, is_free=False),
-        allocator.MemoryRegion(15, 85, is_free=True),
+        allocator.MemoryRegion(0, 32, is_free=False),
+        allocator.MemoryRegion(32, 8, is_free=False, padding=8),
+        allocator.MemoryRegion(48, 208, is_free=True),
     ]
 
-    alloc.resize(r1, 5)
+    alloc.resize(r1, 16)
     assert alloc.regions == [
-        allocator.MemoryRegion(0, 5, is_free=False),
-        allocator.MemoryRegion(5, 5, is_free=True),
-        allocator.MemoryRegion(10, 5, is_free=False),
-        allocator.MemoryRegion(15, 85, is_free=True),
+        allocator.MemoryRegion(0, 16, is_free=False),
+        allocator.MemoryRegion(16, 16, is_free=True),
+        allocator.MemoryRegion(32, 8, is_free=False, padding=8),
+        allocator.MemoryRegion(48, 208, is_free=True),
     ]
 
     with pytest.raises(ValueError):
-        alloc.resize(allocator.MemoryRegion(10, 5, is_free=False), -5)
+        alloc.resize(allocator.MemoryRegion(32, 8, is_free=False), -5)
 
 
 def test_resize_increase():
     """Test region resize when the size increases"""
 
     alloc = allocator.Allocator(
-        address=0, size=100, block_size=1, alignment=1, allocation_policy=allocator.AllocationPolicy.BEST_FIT
+        address=0, size=256, block_size=16, alignment=32, allocation_policy=allocator.AllocationPolicy.BEST_FIT
     )
-    r1 = alloc.allocate(20)
-    r2 = alloc.allocate(10)
+    r1 = alloc.allocate(64)
+    r2 = alloc.allocate(32)
 
     assert alloc.regions == [
-        allocator.MemoryRegion(0, 20, is_free=False),
-        allocator.MemoryRegion(20, 10, is_free=False),
-        allocator.MemoryRegion(30, 70, is_free=True),
+        allocator.MemoryRegion(0, 64, is_free=False),
+        allocator.MemoryRegion(64, 32, is_free=False),
+        allocator.MemoryRegion(96, 160, is_free=True),
     ]
 
-    with pytest.raises(allocator.AllocatorOutOfMemoryError):
-        alloc.resize(r1, r1.size + 1)
+    with pytest.raises(allocator.OutOfMemoryError):
+        alloc.resize(r1, r1.size + 16)
 
-    with pytest.raises(allocator.AllocatorOutOfMemoryError):
-        alloc.resize(r2, 85)
+    with pytest.raises(allocator.OutOfMemoryError):
+        alloc.resize(r2, 208)
 
 
 def test_resize_same_size():
     """Test region resize when the size stays the same"""
 
     alloc = allocator.Allocator(
-        address=0, size=100, block_size=1, alignment=1, allocation_policy=allocator.AllocationPolicy.BEST_FIT
+        address=0, size=256, block_size=16, alignment=32, allocation_policy=allocator.AllocationPolicy.BEST_FIT
     )
-    alloc.allocate(20)
-    r = alloc.allocate(10)
+    alloc.allocate(64)
+    r = alloc.allocate(32)
     assert alloc.regions == [
-        allocator.MemoryRegion(0, 20, is_free=False),
-        allocator.MemoryRegion(20, 10, is_free=False),
-        allocator.MemoryRegion(30, 70, is_free=True),
+        allocator.MemoryRegion(0, 64, is_free=False),
+        allocator.MemoryRegion(64, 32, is_free=False),
+        allocator.MemoryRegion(96, 160, is_free=True),
     ]
     alloc.resize(r, r.size)
     assert alloc.regions == [
-        allocator.MemoryRegion(0, 20, is_free=False),
-        allocator.MemoryRegion(20, 10, is_free=False),
-        allocator.MemoryRegion(30, 70, is_free=True),
+        allocator.MemoryRegion(0, 64, is_free=False),
+        allocator.MemoryRegion(64, 32, is_free=False),
+        allocator.MemoryRegion(96, 160, is_free=True),
     ]
 
 
 def test_block_size():
-    """Test that the"""
+    """Test that the block size is observed"""
     alloc = allocator.Allocator(
         address=0, size=128, block_size=16, alignment=1, allocation_policy=allocator.AllocationPolicy.BEST_FIT
     )
