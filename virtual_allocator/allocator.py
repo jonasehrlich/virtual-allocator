@@ -5,7 +5,7 @@ import enum
 import typing as ty
 
 
-__all__ = ["UnknownRegionError", "AllocationPolicy", "OutOfMemoryError", "Allocator"]
+__all__ = ["UnknownRegionError", "AllocationPolicy", "OutOfMemoryError", "Allocator", "AlignmentError"]
 
 
 @dataclasses.dataclass(frozen=True)
