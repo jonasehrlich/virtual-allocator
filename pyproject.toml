@@ -34,10 +34,6 @@ dev = [
 homepage = "https://github.com/jonasehrlich/virtual-allocator"
 repository = "https://github.com/jonasehrlich/virtual-allocator"
 
-[tool.setuptools.packages.find]
-include = ["virtual_allocator*"]
-exclude = ["test*"]
-
 [tool.setuptools.dynamic]
 version = {attr = "virtual_allocator.__version__"}
 

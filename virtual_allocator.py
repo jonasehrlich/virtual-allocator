@@ -4,6 +4,8 @@ import dataclasses
 import enum
 import typing as ty
 
+__version__ = "0.0.1"
+
 
 __all__ = ["UnknownRegionError", "AllocationPolicy", "OutOfMemoryError", "Allocator", "AlignmentError"]
 
