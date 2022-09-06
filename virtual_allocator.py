@@ -4,7 +4,7 @@ import dataclasses
 import enum
 import typing as ty
 
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 
 
 __all__ = [
