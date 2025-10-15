@@ -22,8 +22,8 @@ jobs:
         run: uv sync --locked --all-extras --dev
       - name: check-format
         run: uv run ruff format --check
-      # - name: check-types
-      #   run: uv run mypy
+      - name: check-types
+        run: uv run mypy
       - name: lint
         run: uv run ruff check --output-format github
       - name: Test with pytest

@@ -25,6 +25,7 @@ Repository = "https://github.com/jonasehrlich/virtual-allocator"
 
 [dependency-groups]
 dev = [
+  "mypy>=1.18.2",
   "pytest>=8.4.2",
   "pytest-cov>=7.0.0",
   "pytest-subtests>=0.14.2",
@@ -32,11 +33,6 @@ dev = [
 ]
 [tool.uv]
 default-groups = ["dev"]
-
-
-[tool.ruff]
-line-length = 120
-
 
 [tool.coverage.report]
 exclude_also = [
@@ -56,5 +52,22 @@ exclude_also = [
 ]
 fail_under = 90
 
+[tool.coverage.run]
+branch = true
+source = ["virtual_allocator"]
+
+[tool.coverage.xml]
+output = "coverage.xml"
+
 [tool.isort]
 profile = "black"
+line_length = 120
+src_paths = ["virtual_allocator", "test"]
+
+
+[tool.mypy]
+packages = ["virtual_allocator"]
+strict = true
+
+[tool.ruff]
+line-length = 120
