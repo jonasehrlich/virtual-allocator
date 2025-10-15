@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import dataclasses
 import enum
+import importlib.metadata
 import typing as ty
 
-__version__ = "0.0.2"
+__version__ = importlib.metadata.version(__name__)
 
 
 __all__ = [

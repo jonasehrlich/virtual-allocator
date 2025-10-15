@@ -1,5 +1,8 @@
 import pytest
-from virtual_allocator import *
+
+from virtual_allocator import (AlignmentError, AllocationPolicy, Allocator,
+                               MemoryRegion, OutOfMemoryError,
+                               UnknownRegionError)
 
 
 def test_allocate():
@@ -237,7 +240,6 @@ def test_block_size():
     """Test that the block size is observed"""
     alloc = Allocator(address=0, size=128, block_size=16, alignment=1, allocation_policy=AllocationPolicy.BEST_FIT)
     with pytest.raises(AlignmentError):
-
         alloc.allocate(20)
     r = alloc.allocate(32)
     assert alloc.regions == [

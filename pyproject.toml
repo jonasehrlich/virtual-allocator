@@ -1,17 +1,16 @@
 [build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "virtual-allocator"
 description = "Python allocator for a virtual memory range"
+version = "0.0.3"
 readme = "README.md"
-requires-python = ">=3.7"
-license = {text = "MIT"}
-keywords = []
-authors = [
-  {name = "Jonas Ehrlich"}, {email = "jonas.ehrlich@gmail.com"},
-]
+requires-python = ">=3.11"
+license = { text = "MIT" }
+keywords = ["memory", "allocator"]
+authors = [{ name = "Jonas Ehrlich", email = "jonas.ehrlich@gmail.com" }]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Environment :: Console",
@@ -19,27 +18,40 @@ classifiers = [
   "Operating System :: OS Independent",
   "Programming Language :: Python",
 ]
-dynamic = ["version"]
-
-[project.optional-dependencies]
-dev = [
-    "black==22.6.0",
-    "pre-commit",
-    "pytest",
-    "pytest-subtests",
-    "pytest-cov",
-]
 
 [project.urls]
-homepage = "https://github.com/jonasehrlich/virtual-allocator"
-repository = "https://github.com/jonasehrlich/virtual-allocator"
+Homepage = "https://github.com/jonasehrlich/virtual-allocator"
+Repository = "https://github.com/jonasehrlich/virtual-allocator"
 
-[tool.setuptools.dynamic]
-version = {attr = "virtual_allocator.__version__"}
+[dependency-groups]
+dev = [
+  "pytest>=8.4.2",
+  "pytest-cov>=7.0.0",
+  "pytest-subtests>=0.14.2",
+  "ruff>=0.14.0",
+]
+[tool.uv]
+default-groups = ["dev"]
 
-[tool.black]
+
+[tool.ruff]
 line-length = 120
 
 
-[tool.pytest.ini_options]
-addopts = "--cov-report=xml:coverage.xml --cov-report=term --cov=virtual_allocator"
+[tool.coverage.report]
+exclude_also = [
+    # Don't complain about missing debug-only code:
+    "def __repr__",
+    # Don't complain if tests don't hit defensive assertion code:
+    "raise AssertionError",
+    "raise NotImplementedError",
+    # Don't complain if non-runnable code isn't run:
+    "if 0:",
+    "if __name__ == .__main__.:",
+    # Don't complain about abstract methods, they aren't run:
+    "@(abc\\.)?abstractmethod",
+    "^\\s+\\.\\.\\.",
+    # Don't complain about type check guarded imports
+    "if ((ty)(ping)?.)?TYPE_CHECKING:",
+]
+fail_under = 90
