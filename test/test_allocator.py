@@ -1,8 +1,13 @@
 import pytest
 
-from virtual_allocator import (AlignmentError, AllocationPolicy, Allocator,
-                               MemoryRegion, OutOfMemoryError,
-                               UnknownRegionError)
+from virtual_allocator import (
+    AlignmentError,
+    AllocationPolicy,
+    Allocator,
+    MemoryRegion,
+    OutOfMemoryError,
+    UnknownRegionError,
+)
 
 
 def test_allocate():
